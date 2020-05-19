@@ -187,6 +187,42 @@ data_pull <- function(){
   
   head(df_rec2)
   tail(df_rec2)
+  
+  #---------------- Aggregate all cases ----------------
+  df_coronavirus <- dplyr::bind_rows(df_conf2,df_death2,df_rec2)%>%
+    dplyr::select(date, province = Province.State,
+                  country = Country.Region,
+                  lat = Lat,
+                  long = Long,
+                  type, cases) %>%
+    as.data.frame()
+  
+  return(df_coronavirus)
 }
-data_pull()
+
+library(ggplot2)
+
+`%>%` <- magrittr::`%>%`
+corona <- data_pull() 
+
+  corona_dz <- corona%>%
+    dplyr::filter(date >"2020-04-01", country=="Algeria")%>%
+    dplyr::group_by(type,date)%>%
+    tidyr::pivot_wider(names_from = type, values_from = cases)%>%
+    dplyr::arrange(date)%>%
+    dplyr::ungroup()%>%
+    dplyr::mutate(total_death = cumsum(death))%>%
+    dplyr::mutate(total_conf = cumsum(confirmed))%>%
+    dplyr::mutate(total_rec = cumsum(recovered))
+    
+
+    ggplot(corona_dz, aes(date))+
+      geom_line(aes(y = total_death, colour = "total_death"))+ 
+      geom_line(aes(y = total_conf, colour = "total_conf"))+
+      geom_line(aes(y = total_rec, colour = "total_rec"))+
+      scale_y_log10()+
+      expand_limits(y = 0)
+
+
+
   
